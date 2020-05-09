@@ -1,0 +1,37 @@
+{
+  "name": "render-k-line",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build:prod": "NODE_ENV=production rollup -c",
+    "build:dev": "NODE_ENV=development rollup -c"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tianqinisnan/render-k-line.git"
+  },
+  "keywords": [],
+  "author": "Nan",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/tianqinisnan/render-k-line/issues"
+  },
+  "homepage": "https://github.com/tianqinisnan/render-k-line#readme",
+  "devDependencies": {
+    "@babel/core": "^7.9.6",
+    "@babel/plugin-proposal-class-properties": "^7.8.3",
+    "@babel/plugin-proposal-decorators": "^7.8.3",
+    "@babel/plugin-transform-runtime": "^7.9.6",
+    "@babel/preset-env": "^7.9.6",
+    "rollup": "^2.8.2",
+    "rollup-plugin-babel": "^4.4.0",
+    "rollup-plugin-commonjs": "^10.1.0",
+    "rollup-plugin-eslint": "^7.0.0",
+    "rollup-plugin-node-resolve": "^5.2.0",
+    "rollup-plugin-uglify": "^6.0.4"
+  },
+  "dependencies": {
+    "@babel/runtime": "^7.9.6"
+  }
+}

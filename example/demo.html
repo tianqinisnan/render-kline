@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>K Line Demo</title>
+</head>
+<body>
+  <h3 style="text-align: center; margin: 20px 0px;">黄金(XAUUSD) K-line DEMO -- <span id="title">5分钟</span>线</h3>
+  <div id="myCanvasBox" style="width: 80%;height: 500px;border: 10px solid #ccc;box-sizing: border-box;margin: 0 auto;position: relative;"></div>
+
+  <script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
+  <script src="./../dist/index.js"></script>
+  <script src="./demo-data.js"></script>
+  <script>
+    let type = 5;
+    let data = [];
+    let loadRealStatus = false;
+    let options = {
+      sharpness: 2,
+      blockWidth: 11,
+      horizontalCells: 10
+    };
+    let kLine = new RenderKLine("myCanvasBox", options);
+
+    renderHistoryData();
+    function renderHistoryData (reloadData) {
+      kLine.loading();
+      getHistoryData().then(rs => {
+        if (rs.is_succ) {
+          data = rs.data.records;
+          kLine.updateHistoryQuote({data, type, callback: renderHistoryData, reloadData});
+          loadRealStatus = true;
+        }
+      });
+    }
+      
+    let realTime = `{
+        "time": 1575858840, 
+        "open_price": "1690.91", 
+        "high": "1692.12", 
+        "low": "1689.96", 
+        "close": "1691.91", 
+        "vol": 102
+    }`;
+    // 模拟实时数据
+    setInterval(() => {
+      if (!loadRealStatus) return;
+      let realTimeCopy = JSON.parse(realTime);
+      realTimeCopy.time = parseInt(new Date().getTime()/1000);
+      realTimeCopy.close = (1690.96 - (Math.random() * 2 - 1)).toFixed(2);
+      kLine.updateRealTimeQuote(realTimeCopy);
+    }, parseInt(Math.random() * 1000 + 500))
+  </script>
+</body>
+</html>

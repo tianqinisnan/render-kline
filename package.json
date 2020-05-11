@@ -2,7 +2,7 @@
   "name": "render-k-line",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "build:prod": "NODE_ENV=production rollup -c",
     "build:dev": "NODE_ENV=development rollup -c"
@@ -11,7 +11,7 @@
     "type": "git",
     "url": "git+https://github.com/tianqinisnan/render-k-line.git"
   },
-  "keywords": [],
+  "keywords": ["canvas"],
   "author": "Nan",
   "license": "MIT",
   "bugs": {
@@ -30,8 +30,5 @@
     "rollup-plugin-eslint": "^7.0.0",
     "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-uglify": "^6.0.4"
-  },
-  "dependencies": {
-    "@babel/runtime": "^7.9.6"
   }
 }

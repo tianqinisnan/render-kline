@@ -13,7 +13,7 @@ export default {
   output: {
     file: "dist/index.js",
     format: "umd",
-    name: "renderKLine"
+    name: "RenderKLine"
   },
   plugins: [
     babel({

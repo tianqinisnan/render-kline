@@ -1,7 +1,7 @@
 {
   "name": "render-k-line",
   "version": "1.0.0",
-  "description": "",
+  "description": "基于HTML5 Canvas的原生K线图渲染工具",
   "main": "dist/index.js",
   "scripts": {
     "build:prod": "NODE_ENV=production rollup -c",
@@ -11,7 +11,7 @@
     "type": "git",
     "url": "git+https://github.com/tianqinisnan/render-k-line.git"
   },
-  "keywords": ["canvas"],
+  "keywords": ["canvas", "render", "kline"],
   "author": "Nan",
   "license": "MIT",
   "bugs": {

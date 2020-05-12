@@ -1,5 +1,5 @@
 {
-  "name": "render-kline",
+  "name": "kline-render",
   "version": "1.0.0",
   "description": "基于HTML5 Canvas的原生K线图渲染工具",
   "main": "dist/index.js",

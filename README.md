@@ -4,6 +4,30 @@
 ### Instructions
 - 可以渲染一个基础版的股票或外汇的K线图（蜡烛图），支持渲染历史数据和实时数据，支持拖拽、缩放、鼠标滚轮等操作
 
+### How to use
+1. script标签
+```
+<script src="./kline-render/dist/index.js"></script>
+<script>
+var options ={/*...*/};
+var kLine = new RenderKLine("myCanvasBox", options);
+
+kline.loading();
+kline.updateHistoryQuote({/*...*/});
+//...
+</script>
+```
+2. require 引入
+```
+const RenderKLine = require('kline-render');
+//...
+```
+3. import 引入
+```
+import RenderKLine from 'kline-render';
+//...
+```
+
 #### 实例可调用方法
 - [loading] : 刷新或加载更多数据loading状态
 - [changeSharpness] : 切换清晰度

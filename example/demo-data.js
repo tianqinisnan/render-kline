@@ -1,4 +1,4 @@
-function getHistoryData () {
+export function getHistoryData () {
   var data = {
     "is_succ": true, 
     "data": {

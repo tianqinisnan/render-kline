@@ -1,22 +1,21 @@
-
-import { LINE_WIDTH, BOTTOM_SPACE, TOP_SPACE, RIGHT_SPACE, TIME_INDEX } from './constant';
-import { computeTotalWidth, transformOrigin } from './draw-tools';
-import updateData from './core';
+/**
+ * 实例方法挂载。历史/实时数据在写入 this.dataArr 前经 normalize-bar 转为统一结构，与 core / draw-tools 约定一致。
+ */
+import { RIGHT_SPACE } from './constant.js';
+import { normalizeBar, normalizeBars } from './model/normalize-bar.js';
+import { computeTotalWidth } from './draw-tools.js';
+import { resizeAllLayers, disconnectResizeObserver } from './layers/resize-layers.js';
+import { detachChartInteractions } from './event.js';
+import updateData from './core.js';
+import { DIRTY_OVERLAY } from './scheduler.js';
 
 export default function (klineProto) {
+  /**
+   * 同步所有分层 canvas 的像素尺寸与字体线宽（容器变化、sharpness 变化时调用）。
+   * 不在拖拽/十字线移动时每帧调用，避免缓冲反复重建。
+   */
   klineProto.prototype.resetCanvas = function() {
-    this.canvas.width = this.actualWidth * this.sharpness;
-    this.canvas.height = this.actualHeight * this.sharpness;
-    this.canvas.style.height = this.canvas.height / this.sharpness + 'px';
-    this.canvas.style.width = this.canvas.width / this.sharpness + 'px';
-    this.centerSpace = this.canvas.height - (BOTTOM_SPACE + TOP_SPACE) * this.sharpness;
-    // 将canvas原点坐标转换到右上角
-    transformOrigin.call(this);
-    // base settings
-    this.ctx.lineWidth = LINE_WIDTH*this.sharpness;
-    this.ctx.font = `${12*this.sharpness}px Arial`;
-    // 还原之前滚动的距离
-    this.ctx.translate(-this.movingRange * this.sharpness, 0);
+    resizeAllLayers(this);
   };
   /**
    * 加载loading.gif & 更多数据
@@ -74,7 +73,7 @@ export default function (klineProto) {
     // 根据新blockWidth, 先重新计算总宽度
     computeTotalWidth.call(this);
     // 再根据推导公式计算出diffRange, 也就是需要移动的距离
-    let newRange = (this.movingRange*this.sharpness*this.totalWidth+this.canvas.width/2*this.totalWidth-this.canvas.width/2*oldTotalLen)/oldTotalLen/this.sharpness;
+    let newRange = (this.movingRange*this.sharpness*this.totalWidth+this.plotWidth/2*this.totalWidth-this.plotWidth/2*oldTotalLen)/oldTotalLen/this.sharpness;
     let diffRange = newRange - this.movingRange;
     // 最后调用函数去移动图表, 重新绘制
     this.translateKLine(diffRange);
@@ -84,8 +83,8 @@ export default function (klineProto) {
   klineProto.prototype.translateKLine = function (range) {
     if (this.loadingStatus) return;
     this.movingRange += parseInt(range);
-    let maxMovingRange =  (this.totalWidth - this.canvas.width) / this.sharpness + this.blockWidth;
-    if (this.totalWidth <= this.canvas.width || this.movingRange <= 0) {
+    let maxMovingRange =  (this.totalWidth - this.plotWidth) / this.sharpness + this.blockWidth;
+    if (this.totalWidth <= this.plotWidth || this.movingRange <= 0) {
       // 到了最右边
       this.movingRange = 0;
     } else if (this.movingRange >= maxMovingRange) {
@@ -93,13 +92,13 @@ export default function (klineProto) {
       this.movingRange = maxMovingRange;
       this.loading('left');
     }
-    this.resetCanvas();
     updateData.call(this);
   }
   // 切换十字线状态 status 1显示 0不显示
   klineProto.prototype.changeCrossLineStatus = function (status) {
     this.crossLineStatus = status ? true : false;
-  }
+    if (typeof this.markDirty === 'function') this.markDirty(DIRTY_OVERLAY);
+  };
   // 实时报价
   klineProto.prototype.updateRealTimeQuote = function (quote) {
     if (!quote) return;
@@ -115,7 +114,11 @@ export default function (klineProto) {
    * @param {Fn} callback 回调函数 加载更多数据
    */
   klineProto.prototype.updateHistoryQuote = function ({data, type = 60, reloadData = false, callback}) {
-    if (reloadData) this.dataArr = [];
+    if (reloadData) {
+      this.dataArr = [];
+      // 全量重拉时与旧时间轴脱钩，避免实时合并仍引用上一批数据的 lastDataTimestamp
+      this.lastDataTimestamp = undefined;
+    }
     this.callbackMore = callback;
     let spanList = this.cBox.getElementsByTagName('span');
     // 使用循环删除 span
@@ -124,24 +127,79 @@ export default function (klineProto) {
     }
     this.loadingStatus = false;
     if (!(data instanceof Array) || !data.length) return;
-    this.dataArr = this.dataArr.concat(data);
+    // 接口原始行 → { time, open, high, low, close, volume }，再拼入内存（与 pushQuoteInData 结构一致）
+    this.dataArr = this.dataArr.concat(normalizeBars(data));
     this.dataType = type;
     updateData.call(this);
-  }
+  };
+
+  /**
+   * 卸载实例：断开 ResizeObserver、移除交互监听、取消待绘制 rAF、移除 DOM。
+   * 调用后不应再使用本实例。
+   */
+  klineProto.prototype.destroy = function () {
+    if (this._destroyed) return;
+    this._destroyed = true;
+
+    disconnectResizeObserver(this);
+    if (typeof this.cancelScheduledDraw === 'function') {
+      this.cancelScheduledDraw();
+    }
+    detachChartInteractions(this);
+
+    if (this.cBox) {
+      const children = [...this.cBox.children];
+      for (let i = 0; i < children.length; i++) {
+        const node = children[i];
+        if (node.tagName === 'SPAN') {
+          this.cBox.removeChild(node);
+        }
+      }
+      if (this.layerRoot && this.layerRoot.parentNode === this.cBox) {
+        this.cBox.removeChild(this.layerRoot);
+      }
+    }
+
+    this.dataArr = [];
+    this.event = undefined;
+    this.layerRoot = undefined;
+    this.hitTarget = undefined;
+    this.layers = undefined;
+    this.canvas = undefined;
+    this.ctxGrid = undefined;
+    this.ctxMain = undefined;
+    this.ctxSub = undefined;
+    this.ctxOverlay = undefined;
+    this.ctx = undefined;
+    this.markDirty = function () {};
+    this.cancelScheduledDraw = function () {};
+  };
 }
-// 把实时报价对接到历史报价数据(dataArr)中
+
+/**
+ * 实时 tick 合并到 this.dataArr[0]（dataArr[0] 为最新一根，与绘图循环一致）。
+ * 先规范为 bar，再按「与 lastDataTimestamp 的分钟差」与 dataType（周期分钟数）比较：跨周期则新开一根，否则只更新当前根。
+ */
 function pushQuoteInData (quote) {
   if (this.loadingStatus) return;
-  this.lastDataTimestamp = this.lastDataTimestamp || this.dataArr[0][TIME_INDEX];
-  let diffMinutes = (quote[TIME_INDEX] - this.lastDataTimestamp) / 60; //当前的实时报价比较上一个报价多出的分钟数
+  const bar = normalizeBar(quote);
+  if (!this.dataArr.length) {
+    // 尚无历史时，直接以首条实时作为第一根 K 线
+    this.dataArr.unshift(bar);
+    this.lastDataTimestamp = bar.time;
+    updateData.call(this);
+    return;
+  }
+  this.lastDataTimestamp = this.lastDataTimestamp || this.dataArr[0].time;
+  // bar.time 与 lastDataTimestamp 均为秒；dataType 为分钟（如 5 表示 5 分钟线）
+  const diffMinutes = (bar.time - this.lastDataTimestamp) / 60;
   if (diffMinutes >= this.dataType) {
-    // 若超过 dataType 时间另开一条数据，并更新 lastDataTimestamp
-    this.dataArr.unshift(quote);
-    this.lastDataTimestamp = quote[TIME_INDEX];
+    this.dataArr.unshift(bar);
+    this.lastDataTimestamp = bar.time;
     this.fromSpaceNum++;
   } else {
-    this.dataArr.splice(0, 1, quote)
+    // 同一根 K 线内：用新 tick 整体替换当前根（OHLC 已由上游算好或单次字段）
+    this.dataArr.splice(0, 1, bar);
   }
-  this.resetCanvas();
   updateData.call(this);
 }

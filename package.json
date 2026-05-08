@@ -5,7 +5,9 @@
   "main": "dist/index.js",
   "scripts": {
     "build:prod": "NODE_ENV=production rollup -c",
-    "build:dev": "NODE_ENV=development rollup -c"
+    "build:dev": "NODE_ENV=development rollup -c",
+    "dev": "NODE_ENV=development rollup -c -w",
+    "demo": "serve . -l 8080"
   },
   "repository": {
     "type": "git",
@@ -29,6 +31,7 @@
     "rollup-plugin-commonjs": "^10.1.0",
     "rollup-plugin-eslint": "^7.0.0",
     "rollup-plugin-node-resolve": "^5.2.0",
-    "rollup-plugin-uglify": "^6.0.4"
+    "rollup-plugin-uglify": "^6.0.4",
+    "serve": "^14.2.4"
   }
 }

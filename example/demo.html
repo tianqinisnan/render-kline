@@ -1,27 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- 移动端：禁止图表区默认手势抢滚动；窄屏可将外层 width:80% 改为 100% 测竖屏 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>K Line Demo</title>
 </head>
 <body>
   <h3 style="text-align: center; margin: 20px 0px;">黄金(XAUUSD) K-line DEMO -- <span id="title">5分钟</span>线</h3>
   <div id="myCanvasBox" style="width: 80%;height: 500px;border: 10px solid #ccc;box-sizing: border-box;margin: 0 auto;position: relative;"></div>
 
-  <script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
-  <script src="./../dist/index.js"></script>
-  <script src="./demo-data.js"></script>
-  <script>
-    let type = 5;
+  <!--
+    ES modules：仓库根目录 npm run demo → http://localhost:8080/example/demo.html（勿用 file://）。
+    移动端：单指拖 K 线、双指捏合缩放；十字线随手指移动（options.crossLineStatus）。
+  -->
+  <script type="module">
+    import RenderKLine from '../src/index.js';
+    import { getHistoryData } from './demo-data.js';
+
+    const type = 5;
     let data = [];
     let loadRealStatus = false;
-    let options = {
+    const options = {
       sharpness: 2,
       blockWidth: 11,
-      horizontalCells: 10
+      horizontalCells: 10,
+      crossLineStatus: true
     };
-    let kLine = new RenderKLine("myCanvasBox", options);
+    const kLine = new RenderKLine('myCanvasBox', options);
 
     renderHistoryData();
     function renderHistoryData (reloadData) {
@@ -29,28 +35,28 @@
       getHistoryData().then(rs => {
         if (rs.is_succ) {
           data = rs.data.records;
-          kLine.updateHistoryQuote({data, type, callback: renderHistoryData, reloadData});
+          kLine.updateHistoryQuote({ data, type, callback: renderHistoryData, reloadData });
           loadRealStatus = true;
         }
       });
     }
-      
-    let realTime = `{
-        "time": 1575858840, 
-        "open_price": "1690.91", 
-        "high": "1692.12", 
-        "low": "1689.96", 
-        "close": "1691.91", 
+
+    const realTimeTemplate = `{
+        "time": 1575858840,
+        "open_price": "1690.91",
+        "high": "1692.12",
+        "low": "1689.96",
+        "close": "1691.91",
         "vol": 102
     }`;
-    // 模拟实时数据
+
     setInterval(() => {
       if (!loadRealStatus) return;
-      let realTimeCopy = JSON.parse(realTime);
-      realTimeCopy.time = parseInt(new Date().getTime()/1000);
+      const realTimeCopy = JSON.parse(realTimeTemplate);
+      realTimeCopy.time = parseInt(Date.now() / 1000, 10);
       realTimeCopy.close = (1690.96 - (Math.random() * 2 - 1)).toFixed(2);
       kLine.updateRealTimeQuote(realTimeCopy);
-    }, parseInt(Math.random() * 1000 + 500))
+    }, parseInt(Math.random() * 1000 + 500, 10));
   </script>
 </body>
 </html>
